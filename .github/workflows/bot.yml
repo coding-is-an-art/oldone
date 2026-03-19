@@ -1,49 +1,60 @@
 # ============================================================
-#  GitHub Actions — VisionExus Ad-Click Bot
+#  GitHub Actions — VisionExus Ad-Click Bot V2 STEALTH EDITION
 #
 #  Triggers:
 #   • Manual (workflow_dispatch) — start / stop whenever you want
 #   • Scheduled (cron)          — runs automatically every 2 hours
+#   • Push to main              — verifies on each commit
 #
 #  Stop the run at any time by clicking "Cancel" in the
 #  GitHub Actions UI (Actions → your run → Cancel workflow).
+#
+#  PROXY SETUP (optional):
+#   Add these as GitHub repository Secrets (Settings → Secrets → Actions):
+#     PROXY_SERVER  — e.g. http://geo.iproyal.com:12321
+#     PROXY_USER    — your proxy username
+#     PROXY_PASS    — your proxy password
 # ============================================================
 
-name: VisionExus Ad-Click Bot
+name: VisionExus Ad-Click Bot V2
 
 on:
-  # ── Manual trigger (run on-demand from GitHub UI) ──────────
+  # ── Manual trigger ──────────────────────────────────────────
   workflow_dispatch:
     inputs:
       max_iterations:
-        description: "Max loop iterations (0 = run until cancelled)"
+        description: "Max loop iterations"
         required: false
         default: "999999"
       loop_delay_seconds:
-        description: "Seconds to wait between iterations"
+        description: "Seconds between iterations"
         required: false
         default: "8"
+      click_rate:
+        description: "Ad click probability (0.0–1.0). Default: 0.03 = 3%"
+        required: false
+        default: "0.03"
 
-  # ── Push: run on every push to main ────────────────────────
+  # ── Push to main (smoke test) ───────────────────────────────
   push:
     branches: [ main ]
 
-  # ── Scheduled: every 2 hours automatically ─────────────────
+  # ── Scheduled: every 2 hours ────────────────────────────────
   schedule:
     - cron: "0 */2 * * *"
 
 jobs:
   run-bot:
-    name: 🤖 Run Ad-Click Bot
+    name: 🤖 Run Ad-Click Bot V2
     runs-on: ubuntu-latest
-    timeout-minutes: 350   # GitHub max is 6 hours; set to ~5h 50m
+    timeout-minutes: 350
 
     steps:
-      # ── 1. Checkout code ────────────────────────────────────
+      # ── 1. Checkout ─────────────────────────────────────────
       - name: ⬇️  Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Setup Node.js ────────────────────────────────────
+      # ── 2. Node.js ──────────────────────────────────────────
       - name: 🟢 Setup Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -54,15 +65,19 @@ jobs:
       - name: 📦 Install npm dependencies
         run: npm ci
 
-      # ── 4. Install Playwright browsers ──────────────────────
+      # ── 4. Playwright Chromium ──────────────────────────────
       - name: 🎭 Install Playwright + Chromium
         run: npx playwright install chromium --with-deps
 
-      # ── 5. Run the bot ──────────────────────────────────────
-      - name: 🚀 Run VisionExus Bot
+      # ── 5. Run bot ──────────────────────────────────────────
+      - name: 🚀 Run VisionExus Bot V2
         env:
           MAX_ITERATIONS: ${{ github.event.inputs.max_iterations || '999999' }}
           LOOP_DELAY_MS:  ${{ github.event.inputs.loop_delay_seconds && format('{0}000', github.event.inputs.loop_delay_seconds) || '8000' }}
+          CLICK_RATE:     ${{ github.event.inputs.click_rate || '0.03' }}
+          PROXY_SERVER:   ${{ secrets.PROXY_SERVER }}
+          PROXY_USER:     ${{ secrets.PROXY_USER }}
+          PROXY_PASS:     ${{ secrets.PROXY_PASS }}
         run: node tests/bot.spec.js
 
       # ── 6. Upload logs on failure ────────────────────────────
