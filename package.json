@@ -1,0 +1,16 @@
+{
+  "name": "visionexus-bot",
+  "version": "1.0.0",
+  "description": "Automated ad-click bot for visionexus.netlify.app using Playwright",
+  "main": "tests/bot.spec.js",
+  "scripts": {
+    "start": "node tests/bot.spec.js",
+    "test": "node tests/bot.spec.js"
+  },
+  "dependencies": {
+    "playwright": "^1.44.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

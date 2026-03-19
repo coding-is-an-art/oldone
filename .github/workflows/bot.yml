@@ -1,0 +1,71 @@
+# ============================================================
+#  GitHub Actions — VisionExus Ad-Click Bot
+#
+#  Triggers:
+#   • Manual (workflow_dispatch) — start / stop whenever you want
+#   • Scheduled (cron)          — runs automatically every 2 hours
+#
+#  Stop the run at any time by clicking "Cancel" in the
+#  GitHub Actions UI (Actions → your run → Cancel workflow).
+# ============================================================
+
+name: VisionExus Ad-Click Bot
+
+on:
+  # ── Manual trigger (run on-demand from GitHub UI) ──────────
+  workflow_dispatch:
+    inputs:
+      max_iterations:
+        description: "Max loop iterations (0 = run until cancelled)"
+        required: false
+        default: "999999"
+      loop_delay_seconds:
+        description: "Seconds to wait between iterations"
+        required: false
+        default: "8"
+
+  # ── Scheduled: every 2 hours automatically ─────────────────
+  schedule:
+    - cron: "0 */2 * * *"
+
+jobs:
+  run-bot:
+    name: 🤖 Run Ad-Click Bot
+    runs-on: ubuntu-latest
+    timeout-minutes: 350   # GitHub max is 6 hours; set to ~5h 50m
+
+    steps:
+      # ── 1. Checkout code ────────────────────────────────────
+      - name: ⬇️  Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Setup Node.js ────────────────────────────────────
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # ── 3. Install dependencies ─────────────────────────────
+      - name: 📦 Install npm dependencies
+        run: npm ci
+
+      # ── 4. Install Playwright browsers ──────────────────────
+      - name: 🎭 Install Playwright + Chromium
+        run: npx playwright install chromium --with-deps
+
+      # ── 5. Run the bot ──────────────────────────────────────
+      - name: 🚀 Run VisionExus Bot
+        env:
+          MAX_ITERATIONS: ${{ github.event.inputs.max_iterations || '999999' }}
+          LOOP_DELAY_MS:  ${{ fromJSON(github.event.inputs.loop_delay_seconds || '8') * 1000 }}
+        run: node tests/bot.spec.js
+
+      # ── 6. Upload logs on failure ────────────────────────────
+      - name: 📋 Upload run logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-logs
+          path: "*.log"
+          retention-days: 7
