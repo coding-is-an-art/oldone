@@ -24,6 +24,10 @@ on:
         required: false
         default: "8"
 
+  # ── Push: run on every push to main ────────────────────────
+  push:
+    branches: [ main ]
+
   # ── Scheduled: every 2 hours automatically ─────────────────
   schedule:
     - cron: "0 */2 * * *"
@@ -58,7 +62,7 @@ jobs:
       - name: 🚀 Run VisionExus Bot
         env:
           MAX_ITERATIONS: ${{ github.event.inputs.max_iterations || '999999' }}
-          LOOP_DELAY_MS:  ${{ (github.event.inputs.loop_delay_seconds || '8') }}000
+          LOOP_DELAY_MS:  ${{ github.event.inputs.loop_delay_seconds && format('{0}000', github.event.inputs.loop_delay_seconds) || '8000' }}
         run: node tests/bot.spec.js
 
       # ── 6. Upload logs on failure ────────────────────────────
